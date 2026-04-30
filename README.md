@@ -32,10 +32,6 @@ graph LR
 
 ```mermaid
 graph TD
-    subgraph "cmd/delta"
-        MAIN[main.go<br/>composition root]
-    end
-
     subgraph "internal/domain/"
         KEY[key.go<br/>hash to ring position]
         RING[ring.go<br/>consistent hashing<br/>preference list]
@@ -65,8 +61,6 @@ graph TD
         GOSSIP[gossip/]
     end
 
-    MAIN --> COORD
-    MAIN --> AE
     COORD --> RING
     COORD --> REP
     COORD --> QRM
