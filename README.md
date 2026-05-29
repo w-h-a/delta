@@ -1,32 +1,12 @@
 # delta
 
+<div align="center">
+  <img src="./.github/assets/delta.png" alt="Delta Mascot" />
+</div>
+
 Leaderless eventually consistent replicated data store.
 
 Single binary, no external dependencies. A consistent hashing ring determines which nodes own which keys. CRDT merge resolves conflicts without coordination. Anti-entropy detects and repairs divergence between replicas in the background. Each read or write specifies how many replicas must respond (R and W) out of the total (N). The caller picks these per request, so a low-stakes preference update can tolerate stale reads while a high-stakes record can require stronger agreement.
-
-## Data Flow
-
-```mermaid
-graph LR
-    subgraph "Write Path"
-        C1[Client] -->|Put key, value| COORD[Coordinator]
-        COORD -->|fan out| R1[Replica 1]
-        COORD -->|fan out| R2[Replica 2]
-        COORD -->|fan out| R3[Replica 3]
-        R1 -->|ack| COORD
-        R2 -->|ack| COORD
-        COORD -->|W=2 satisfied| C1
-    end
-
-    subgraph "Read Path"
-        C2[Client] -->|Get key| COORD2[Coordinator]
-        COORD2 -->|fan out| R4[Replica 1]
-        COORD2 -->|fan out| R5[Replica 2]
-        R4 -->|value + version| COORD2
-        R5 -->|value + version| COORD2
-        COORD2 -->|R=2 satisfied, merge if divergent| C2
-    end
-```
 
 ## Architecture
 
@@ -77,6 +57,30 @@ graph TD
     AE --> GOSSIP
 ```
 
+## Data Flow
+
+```mermaid
+graph LR
+    subgraph "Write Path"
+        C1[Client] -->|Put key, value| COORD[Coordinator]
+        COORD -->|fan out| R1[Replica 1]
+        COORD -->|fan out| R2[Replica 2]
+        COORD -->|fan out| R3[Replica 3]
+        R1 -->|ack| COORD
+        R2 -->|ack| COORD
+        COORD -->|W=2 satisfied| C1
+    end
+
+    subgraph "Read Path"
+        C2[Client] -->|Get key| COORD2[Coordinator]
+        COORD2 -->|fan out| R4[Replica 1]
+        COORD2 -->|fan out| R5[Replica 2]
+        R4 -->|value + version| COORD2
+        R5 -->|value + version| COORD2
+        COORD2 -->|R=2 satisfied, merge if divergent| C2
+    end
+```
+
 ## Consistent Hashing Ring
 
 Every node is hashed to one or more positions on a circular ring of integers (0 to 2^64). To find which nodes own a key, hash the key to a position on the ring and walk clockwise. The first N distinct nodes you encounter are the preference list: the nodes responsible for storing that key's replicas.
@@ -124,10 +128,6 @@ graph TD
     N2 -->|anti-entropy| N1
     N2 -->|anti-entropy| N3
     N3 -->|anti-entropy| N2
-
-    style L fill:#0f3460,stroke:#e94560,color:#eee
-    style D fill:#0f3460,stroke:#e94560,color:#eee
-    style P fill:#0f3460,stroke:#e94560,color:#eee
 ```
 
 delta is never the source of truth. If homelab is down, edge replicas keep working. When it comes back, sync catches up. Partitions are expected, not errors.
@@ -135,5 +135,3 @@ delta is never the source of truth. If homelab is down, edge replicas keep worki
 ## Dependencies
 
 - **meld**: CRDT types, version vectors, gossip transport, SWIM membership. Must be complete.
-
-Observability via Telemetry port (OTel).
