@@ -6,7 +6,7 @@
 
 Leaderless eventually consistent replicated data store.
 
-Single binary, no external dependencies. A consistent hashing ring determines which nodes own which keys. CRDT merge resolves conflicts without coordination. Anti-entropy detects and repairs divergence between replicas in the background. Each read or write specifies how many replicas must respond (R and W) out of the total (N). The caller picks these per request, so a low-stakes preference update can tolerate stale reads while a high-stakes record can require stronger agreement.
+Single binary. A consistent hashing ring determines which nodes own which keys. CRDT merge resolves conflicts without coordination. Anti-entropy detects and repairs divergence between replicas in the background. Each read or write specifies how many replicas must respond (R and W) out of the total (N). The caller picks these per request, so a low-stakes preference update can tolerate stale reads while a high-stakes record can require stronger agreement.
 
 ## Architecture
 
@@ -32,7 +32,6 @@ graph TD
 
     subgraph "internal/client/ (ports)"
         PER[persister/<br/>per-node SQLite]
-        TEL[telemetry/<br/>wide events]
     end
 
     subgraph "meld (library dependency)"
@@ -45,10 +44,8 @@ graph TD
     COORD --> REP
     COORD --> QRM
     COORD --> PER
-    COORD --> TEL
     AE --> MRK
     AE --> PER
-    AE --> TEL
     GRPC --> COORD
     SYNC --> COORD
     SYNC --> AE
