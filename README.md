@@ -128,7 +128,3 @@ graph TD
 ```
 
 delta is never the source of truth. If homelab is down, edge replicas keep working. When it comes back, sync catches up. Partitions are expected, not errors.
-
-## Dependencies
-
-- **meld**: CRDT types, version vectors, gossip transport, SWIM membership. Must be complete.
