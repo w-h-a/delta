@@ -6,18 +6,17 @@
 
 Leaderless eventually consistent replicated data store.
 
-Single binary. A consistent hashing ring determines which nodes own which keys. CRDT merge resolves conflicts without coordination. Anti-entropy detects and repairs divergence between replicas in the background. Each read or write specifies how many replicas must respond (R and W) out of the total (N). The caller picks these per request, so a low-stakes preference update can tolerate stale reads while a high-stakes record can require stronger agreement.
+Single binary. Rendezvous hashing determines which nodes own which keys. CRDT merge resolves conflicts without coordination. Anti-entropy detects and repairs divergence between replicas in the background. Each read or write specifies how many replicas must respond (R and W) out of the total (N). The caller picks these per request, so a low-stakes preference update can tolerate stale reads while a high-stakes record can require stronger agreement.
 
 ## Architecture
 
 ```mermaid
 graph TD
     subgraph "internal/domain/"
-        KEY[key.go<br/>hash to ring position]
-        RING[ring.go<br/>consistent hashing<br/>preference list]
+        KEY[key.go<br/>key identity]
+        RING[placement.go<br/>preference list<br/>via meld rendezvous]
         REP[replica.go<br/>value + version vector<br/>CRDT merge]
         QRM[quorum.go<br/>R/W/N evaluation]
-        MRK[merkle.go<br/>hash tree build + diff]
     end
 
     subgraph "internal/service/"
@@ -38,13 +37,16 @@ graph TD
         CRDT[crdt/<br/>version vectors, OR-Set, LWW]
         MEMB[membership/swim]
         GOSSIP[gossip/]
+        RDV[util/rendezvous<br/>preference list]
+        MRKL[util/merkle<br/>tree build + diff]
     end
 
     COORD --> RING
     COORD --> REP
     COORD --> QRM
     COORD --> PER
-    AE --> MRK
+    RING --> RDV
+    AE --> MRKL
     AE --> PER
     GRPC --> COORD
     SYNC --> COORD
@@ -78,11 +80,11 @@ graph LR
     end
 ```
 
-## Consistent Hashing Ring
+## Placement (rendezvous hashing)
 
-Every node is hashed to one or more positions on a circular ring of integers (0 to 2^64). To find which nodes own a key, hash the key to a position on the ring and walk clockwise. The first N distinct nodes you encounter are the preference list: the nodes responsible for storing that key's replicas.
+To find which nodes own a key, delta uses meld rendezvous hashing: score every node by hash(node, key) and take the top N. Those N nodes are the preference list, the nodes responsible for that key's replicas. delta consumes meld util/rendezvous (the top-N AssignN variant) rather than building its own ring.
 
-This is deterministic. Every node in the cluster can independently compute the same preference list for the same key without any coordination. When a node joins or leaves, only the keys adjacent to its ring positions are affected. Everything else stays where it is.
+This is deterministic. Every node independently computes the same preference list for the same key and node set, with no coordination. When a node joins or leaves, rendezvous moves only the keys that named that node, so disruption is minimal: the same property a consistent-hashing ring gives, but without virtual nodes or ring rebalancing.
 
 ## Anti-Entropy
 
