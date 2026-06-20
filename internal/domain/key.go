@@ -1,7 +1,7 @@
 package domain
 
-// Key is a store key hashed to a position on the consistent hashing ring.
+// Key is a store key. Rendezvous hashing scores (node, Name) pairs
+// directly, so there is no precomputed ring position.
 type Key struct {
-	Name     string
-	Position uint64 // hash of Name, determines ring placement
+	Name string
 }
